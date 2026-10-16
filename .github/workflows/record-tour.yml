@@ -82,6 +82,7 @@ jobs:
           assert cfg.get('browser', {}).get('viewport', {}).get('height') == 1080
           print('Python syntax and recording configuration are valid.')
           PY
+          python -m unittest discover -s tests -v
 
       - name: Record tour
         run: python recorder.py
