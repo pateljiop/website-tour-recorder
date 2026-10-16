@@ -1,6 +1,13 @@
 name: Record website tour
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'recorder.py'
+      - 'config.json'
+      - 'requirements.txt'
+      - '.github/workflows/record-tour.yml'
   workflow_dispatch:
     inputs:
       website_url:
@@ -43,8 +50,8 @@ jobs:
 
       - name: Configure requested tour
         env:
-          WEBSITE_URL: ${{ inputs.website_url }}
-          ROUTE_PATHS: ${{ inputs.route_paths }}
+          WEBSITE_URL: ${{ inputs.website_url || 'https://haryomix.eu.cc' }}
+          ROUTE_PATHS: ${{ inputs.route_paths || '' }}
         run: |
           python - <<'PY'
           import json, os
@@ -61,6 +68,19 @@ jobs:
           cfg["routes"] = [{"name": r, "path": r} for r in routes]
           with open("config.json","w",encoding="utf-8") as f:
               json.dump(cfg,f,indent=2)
+          PY
+
+      - name: Validate Python and configuration
+        run: |
+          python -m compileall -q recorder.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          cfg = json.loads(Path('config.json').read_text(encoding='utf-8'))
+          assert cfg.get('base_url', '').startswith(('https://', 'http://'))
+          assert cfg.get('browser', {}).get('viewport', {}).get('width') == 1920
+          assert cfg.get('browser', {}).get('viewport', {}).get('height') == 1080
+          print('Python syntax and recording configuration are valid.')
           PY
 
       - name: Record tour
