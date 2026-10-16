@@ -9,6 +9,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urljoin, urlparse
 from playwright.async_api import async_playwright, Page, Locator, TimeoutError as PlaywrightTimeoutError
 
 LOG = logging.getLogger("tour-recorder")
@@ -151,6 +152,40 @@ def export_mp4(webm: Path, mp4: Path) -> None:
     ], check=True)
 
 
+async def discover_internal_routes(page: Page, cfg: dict[str, Any]) -> list[dict[str, Any]]:
+    """Discover safe, same-origin page links without clicking potentially destructive controls."""
+    settings = cfg.get("auto_discover", {})
+    if not settings.get("enabled", False):
+        return []
+    max_pages = max(0, min(30, int(settings.get("max_pages", 10))))
+    if max_pages == 0:
+        return []
+    current = urlparse(page.url)
+    excluded = [str(x).lower() for x in settings.get("exclude_patterns", [])]
+    hrefs = await page.locator("a[href]").evaluate_all("els => els.map(a => a.href)")
+    found: list[dict[str, Any]] = []
+    seen: set[str] = {current.path.rstrip("/") or "/"}
+    for href in hrefs:
+        parsed = urlparse(urljoin(page.url, href))
+        if parsed.scheme not in ("http", "https") or parsed.netloc != current.netloc:
+            continue
+        path = parsed.path or "/"
+        low = path.lower()
+        if any(part in low for part in excluded):
+            continue
+        if path.lower().endswith((".pdf", ".zip", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".mp4", ".webm", ".json", ".xml")):
+            continue
+        normalized = path.rstrip("/") or "/"
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        found.append({"name": f"Auto-discovered: {normalized}", "path": normalized, "auto_discovered": True})
+        if len(found) >= max_pages:
+            break
+    LOG.info("Discovered %s internal page(s) to tour.", len(found))
+    return found
+
+
 async def run(cfg: dict[str, Any], config_path: Path) -> Path:
     root = config_path.parent
     out_dir = root / cfg.get("output_dir","recordings")
@@ -177,7 +212,11 @@ async def run(cfg: dict[str, Any], config_path: Path) -> Path:
         await ready(page,cfg)
         await page.wait_for_timeout(int(float(cfg.get("timing",{}).get("hero_pause_seconds",3))*1000))
         await tour_landing(page,cfg)
-        for route in cfg.get("routes",[]):
+        configured_routes = list(cfg.get("routes", []))
+        discovered_routes = await discover_internal_routes(page, cfg)
+        configured_urls = {make_url(cfg["base_url"], r.get("path", "/")) for r in configured_routes}
+        routes = configured_routes + [r for r in discovered_routes if make_url(cfg["base_url"], r["path"]) not in configured_urls]
+        for route in routes:
             url = make_url(cfg["base_url"], route.get("path","/"))
             LOG.info("Touring %s", route.get("name",url))
             await page.goto(url, wait_until="domcontentloaded")
@@ -185,6 +224,8 @@ async def run(cfg: dict[str, Any], config_path: Path) -> Path:
             await page.wait_for_timeout(int(float(route.get("pause_seconds",cfg.get("timing",{}).get("after_navigation_seconds",2)))*1000))
             if route.get("interaction"):
                 await interact(page, route["interaction"], cfg)
+            elif route.get("auto_discovered"):
+                await tour_landing(page, cfg)
             else:
                 await page.wait_for_timeout(int(float(cfg.get("timing",{}).get("after_action_seconds",3))*1000))
         await context.close()
