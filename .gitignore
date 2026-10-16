@@ -1,0 +1,6 @@
+__pycache__/
+.venv/
+recordings/*
+!recordings/.gitkeep
+temp/*
+!temp/.gitkeep
