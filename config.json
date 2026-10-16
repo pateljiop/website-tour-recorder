@@ -47,5 +47,21 @@
       }
     ]
   },
-  "routes": []
+  "routes": [],
+  "auto_discover": {
+    "enabled": true,
+    "max_pages": 10,
+    "exclude_patterns": [
+      "/login",
+      "/logout",
+      "/signout",
+      "/auth",
+      "/admin",
+      "/delete",
+      "/remove",
+      "/checkout",
+      "/payment",
+      "/billing"
+    ]
+  }
 }
