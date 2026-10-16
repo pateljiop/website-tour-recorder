@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       website_url:
-        description: "Full homepage URL to record (e.g. https://example.com)"
+        description: "Full homepage URL to record"
         required: true
+        default: "https://haryomix.eu.cc"
         type: string
       route_paths:
         description: "Comma-separated routes to visit, e.g. /tools,/pdf-editor"
