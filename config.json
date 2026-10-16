@@ -1,0 +1,51 @@
+{
+  "base_url": "https://example.com",
+  "output_dir": "recordings",
+  "temp_dir": "temp",
+  "browser": {
+    "headless": false,
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "device_scale_factor": 1,
+    "record_video_size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "slow_mo_ms": 0
+  },
+  "timing": {
+    "hero_pause_seconds": 3,
+    "after_navigation_seconds": 2,
+    "after_action_seconds": 3,
+    "network_idle_timeout_ms": 10000,
+    "animation_settle_timeout_ms": 4000
+  },
+  "scroll": {
+    "section_pause_seconds": 1.5,
+    "pixels_per_step": 40,
+    "step_duration_ms": 16
+  },
+  "landing_scroll": {
+    "enabled": true,
+    "steps": [
+      {
+        "type": "scroll_by",
+        "pixels": 700
+      },
+      {
+        "type": "scroll_by",
+        "pixels": 700
+      },
+      {
+        "type": "scroll_by",
+        "pixels": 700
+      },
+      {
+        "type": "scroll_to_bottom"
+      }
+    ]
+  },
+  "routes": []
+}
