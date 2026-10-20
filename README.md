@@ -55,6 +55,15 @@ A recording also starts automatically when recording code, its config, dependenc
 
 The GitHub workflow runs headless Chromium on an Ubuntu runner, installs FFmpeg, and uploads the MP4 plus original WebM. It does not require your laptop to be on.
 
+## Troubleshooting
+
+- **The workflow fails before opening the site:** open the Actions run log and check the Python syntax/config validation step first. A malformed `config.json` or invalid route value can stop the run before Chromium starts.
+- **The video is created but a button interaction does nothing:** verify that `input_selector` and `submit_selector` match elements on that exact route. Selectors are page-specific; use a harmless test input.
+- **The result wait times out:** make sure `result_selector` points to an element that appears after submission. If the page has no result panel, remove that optional selector rather than waiting for a nonexistent element.
+- **MP4 export fails but WebM exists:** confirm FFmpeg is installed and available on `PATH`. The original WebM is uploaded as an artifact so the recording may still be recoverable.
+- **Some routes are missing:** add their same-origin paths explicitly in `config.json` or in the workflow's optional route-path input. The automatic homepage discovery is capped at 10 links and intentionally skips common authentication, admin and destructive paths.
+- **The tour looks rushed or waits too long:** adjust the relevant timing and scroll settings in `config.json`; pages with persistent background requests may hit the network-idle timeout and continue.
+
 ## Limitations
 
 - GitHub-hosted runners have usage quotas, execution time limits and artifact retention policies.
